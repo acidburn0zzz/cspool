@@ -28,7 +28,8 @@ def logread(fd):
     sz = struct.unpack('i', szbuf)[0]
     data = fd.read(sz)
     if len(data) != sz:
-        raise Error('short read')
+        print 'short read, log truncated'
+        return pos, None
     return pos, data
 
 
@@ -36,6 +37,7 @@ def logwrite(entry, fd):
     pos = fd.tell()
     fd.write(struct.pack('i', len(entry)))
     fd.write(entry)
+    print 'wrote %d bytes to the log' % len(entry)
     return pos
 
 
@@ -70,8 +72,14 @@ class Spool(object):
             return logwrite(entry, fd)
 
 
+def b64encode_or_none(s):
+    if s is None:
+        return s
+    return base64.b64encode(s)
+
+
 if __name__ == '__main__':
-    # Start a local test spool server on port 3999
+    # Start a local test spool server on port 3999.
     from flask import Flask, request, make_response
     import json
     import optparse
@@ -87,7 +95,7 @@ if __name__ == '__main__':
     def handle_scan():
         spool = Spool(request.args['user'])
         start_pos = int(request.args['start_pos'])
-        out = [{'pos': pos, 'entry': entry}
+        out = [{'pos': pos, 'entry': b64encode_or_none(entry)}
                for pos, entry in spool.scan(start_pos)]
         response = make_response(json.dumps(out))
         response.headers['Content-Type'] = 'application/json'
