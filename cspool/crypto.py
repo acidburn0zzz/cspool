@@ -31,9 +31,8 @@ class Box(object):
             public.PublicKey(dst_key))
 
     def encrypt(self, data):
-        r = os.urandom(max(0, self._box.NONCE_SIZE - len(self._prefix)))
+        r = os.urandom(max(12, self._box.NONCE_SIZE - len(self._prefix)))
         nonce = (self._prefix + r)[-self._box.NONCE_SIZE:]
-        print 'nonce:', nonce, self._box.NONCE_SIZE, len(r)
         return self._box.encrypt(data, nonce)
 
     def decrypt(self, ciphertext):
