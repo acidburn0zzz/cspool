@@ -65,8 +65,12 @@ class Database(object):
         if flag not in ('seen', 'deleted'):
             raise Error('unknown flag "%s"' % flag)
         with commit(self._conn()) as c:
-            c.execute('update messages set %s = ? where msgid = ?' % flag,
+            c.execute('update messages set %s = ? where id = ?' % flag,
                       (msgid, int(value)))
+
+    def expunge(self):
+        with commit(self._conn()) as c:
+            c.execute('delete from messages where deleted = 1')
 
     def count_messages(self, unread=False):
         with rollback(self._conn()) as c:

@@ -84,7 +84,7 @@ class Mailbox(object):
     getUnseenCount = getRecentCount
 
     def isWriteable(self):
-        return False
+        return True
 
     def getUIDValidity(self):
         return 0
@@ -142,10 +142,17 @@ class Mailbox(object):
         raise imap4.MailboxException('Not implemented')
 
     def store(self, messageSet, flags, mode, uid):
-        raise imap4.MailboxException('Not implemented')
+        for id in messageSet:
+            msgid = self._uid_map[id]
+            if '\\Seen' in flags:
+                seen = (mode == -1) and 0 or 1
+                self._db.set_flag_on_message(msgid, 'seen', seen)
+            if '\\Deleted' in flags:
+                deleted = (mode == -1) and 0 or 1
+                self._db.set_flag_on_message(msgid, 'deleted', deleted)
 
     def expunge(self):
-        return True
+        self._db.expunge()
 
     def destroy(self):
         raise imap4.MailboxException('Not implemented')
