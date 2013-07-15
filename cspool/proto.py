@@ -3,8 +3,8 @@
 # The write operations available on it are:
 #
 # Put(message)
-# Delete(message-id)
 # SetFlag(message-id)
+# Expunge()
 # Checkpoint()
 #
 # Each operation is represented as a Command that can be serialized
@@ -18,6 +18,12 @@ import pickle
 
 
 class Command(object):
+    """A serializable operation that modifies state.
+
+    Each command contains a single 'value' attribute. Use standard
+    Python containers to pass multiple values (objects have to be
+    pickle-safe).
+    """
 
     __metaclass__ = abc.ABCMeta
 
@@ -43,10 +49,10 @@ class PutCommand(Command):
         db.add_message(message, timestamp)
 
 
-class DelCommand(Command):
+class ExpungeCommand(Command):
 
     def apply(self, db):
-        db.delete_message(self.value)
+        db.expunge()
 
 
 class SetFlag(Command):
