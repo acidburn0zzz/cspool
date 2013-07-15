@@ -43,6 +43,7 @@ class Command(object):
 
 
 class PutCommand(Command):
+    """Add a message to the database."""
 
     def apply(self, db):
         message, timestamp = self.value
@@ -50,12 +51,14 @@ class PutCommand(Command):
 
 
 class ExpungeCommand(Command):
+    """Expunge the INBOX."""
 
     def apply(self, db):
         db.expunge()
 
 
 class SetFlag(Command):
+    """Set a flag on a message."""
 
     def apply(self, db):
         message_id, flag, value = self.value

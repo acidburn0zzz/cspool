@@ -8,6 +8,7 @@ class Error(Exception):
 
 
 class ServerStub(object):
+    """Stub for a remote spool server, accessed via HTTP."""
 
     def __init__(self, url, user):
         self._url = url.rstrip('/')

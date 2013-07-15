@@ -23,6 +23,10 @@ def rollback(conn):
 
 
 class Database(object):
+    """Local database (using SQLite).
+
+    Run with sqlcrypt if you want encryption.
+    """
 
     def __init__(self, dbpath):
         self._dbpath = dbpath

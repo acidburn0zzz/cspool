@@ -1,8 +1,6 @@
-from twisted.mail import imap4, maildir
+from twisted.mail import imap4
 from twisted.internet import reactor, defer, protocol
-from twisted.cred import portal, checkers, credentials
-from twisted.cred import error as credError
-from twisted.python import filepath
+from twisted.cred import portal
 from zope.interface import implements
 
 import email
@@ -11,6 +9,7 @@ import logging
 import time
 import optparse
 
+from cspool.crypto import Box
 from cspool.client.db import Database
 from cspool.client.imap_interface import CredentialsChecker, UserAccount
 from cspool.client.server_stub import ServerStub
@@ -70,6 +69,14 @@ class IMAPFactory(protocol.Factory):
         return p
 
 
+def box_from_opts(opts):
+    with open(opts.user_key) as fd:
+        secret_key = fd.read()
+    with open(opts.spool_key) as fd:
+        public_key = fd.read()
+    return Box(opts.user, secret_key, public_key)
+
+
 def main():
     parser = optparse.OptionParser()
     parser.add_option('--user', default=getpass.getuser(),
@@ -80,17 +87,21 @@ def main():
                       dest='spool_server_url',
                       default='http://localhost:3999',
                       help='URL of the spool server.')
-    parser.add_option('--key', help='Encryption secret key.')
+    parser.add_option('--user-key', dest='user_key',
+                      help='Secret key to use for decryption')
+    parser.add_option('--spool-key', dest='spool_key',
+                      help='Public key of the spool, to use for verification')
     opts, args = parser.parse_args()
 
-    if not opts.key:
-        parser.error('Must specify --key')
+    if not opts.user_key or not opts.spool_key:
+        parser.error('Must specify both --user-key and --spool-key')
 
     logging.basicConfig()
 
     db = Database(opts.db)
     server = ServerStub(opts.spool_server_url, opts.user)
-    sync = Syncer(db, server, opts.key)
+    box = box_from_opts(opts)
+    sync = Syncer(db, server, box)
     sync.setDaemon(True)
     sync.start()
 
