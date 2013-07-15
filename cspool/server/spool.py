@@ -1,6 +1,7 @@
 # Server-side implementation of the spool.
 # File-based, just because it is easy.
 
+import base64
 import os
 import fcntl
 import contextlib
@@ -83,7 +84,7 @@ if __name__ == '__main__':
     opts, args = parser.parse_args()
 
     @app.route('/scan')
-    def handler():
+    def handle_scan():
         spool = Spool(request.args['user'])
         start_pos = int(request.args['start_pos'])
         out = [{'pos': pos, 'entry': entry}
@@ -91,5 +92,12 @@ if __name__ == '__main__':
         response = make_response(json.dumps(out))
         response.headers['Content-Type'] = 'application/json'
         return response
+
+    @app.route('/command', methods=('POST',))
+    def handle_command():
+        spool = Spool(request.form['user'])
+        cmd_data = base64.b64decode(request.form['encrypted_command'])
+        spool.append(cmd_data)
+        return 'ok'
 
     app.run('127.0.0.1', opts.port)
