@@ -57,7 +57,7 @@ class ExpungeCommand(Command):
         db.expunge()
 
 
-class SetFlag(Command):
+class SetFlagCommand(Command):
     """Set a flag on a message."""
 
     def apply(self, db):
