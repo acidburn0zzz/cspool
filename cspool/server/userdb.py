@@ -18,11 +18,9 @@ class TestUserDb(UserDb):
     This is only useful for testing.
     """
 
-    def __init__(self, user_public_key_file, spool_private_key_file):
-        with open(user_public_key_file) as fd:
-            self._public_key = fd.read()
-        with open(spool_private_key_file) as fd:
-            self._private_key = fd.read()
+    def __init__(self, private_key, public_key):
+        self._private_key = private_key
+        self._public_key = public_key
 
     def get_cryptobox(self, user):
         return crypto.Box(user, self._private_key, self._public_key)
