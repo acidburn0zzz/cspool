@@ -1,0 +1,3 @@
+#!/usr/bin/python
+from cspool.server.spool_app import main
+main()

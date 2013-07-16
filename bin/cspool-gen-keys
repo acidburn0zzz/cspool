@@ -1,0 +1,21 @@
+#!/usr/bin/python
+# Generate a secret/public keypair.
+
+import sys
+from cspool.crypto import generate_keys
+
+
+def main():
+    if len(sys.argv) != 3:
+        print >>sys.stderr, 'Usage: cspool-gen-keys <secret-key-file> <public-key-file>'
+        sys.exit(1)
+    secret_key_path, public_key_path = sys.argv[1:]
+    secret, public = generate_keys()
+    with open(secret_key_path, 'w') as fd:
+        fd.write(secret)
+    with open(public_key_path, 'w') as fd:
+        fd.write(public)
+
+
+if __name__ == '__main__':
+    main()

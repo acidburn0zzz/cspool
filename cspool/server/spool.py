@@ -1,6 +1,3 @@
-# Server-side implementation of the spool.
-# File-based, just because it is easy.
-
 import os
 import fcntl
 import contextlib
@@ -36,11 +33,11 @@ def logwrite(entry, fd):
     pos = fd.tell()
     fd.write(struct.pack('i', len(entry)))
     fd.write(entry)
-    print 'wrote %d bytes to the log' % len(entry)
     return pos
 
 
 class Spool(object):
+    """Spool implementation (file-based)."""
 
     SPOOL_ROOT = './spool'
 
@@ -52,6 +49,11 @@ class Spool(object):
         self._log_file_path = os.path.join(self._root, 'log')
 
     def scan(self, start_pos=0):
+        """Scan the log for entries starting at 'start_pos'.
+
+        Yields (pos, entry) tuples. The final tuple has entry = None,
+        signaling the end of the log.
+        """
         with open(self._log_file_path, 'r') as fd:
             fd.seek(0, 2)
             end_pos = fd.tell()
@@ -67,44 +69,10 @@ class Spool(object):
                     break
 
     def append(self, entry):
+        """Append an entry to the log.
+
+        Returns the log position of the entry.
+        """
         with open(self._log_file_path, 'a') as fd:
             return logwrite(entry, fd)
 
-
-def b64encode_or_none(s):
-    if s is None:
-        return s
-    return s.encode('base64')
-
-
-if __name__ == '__main__':
-    # Start a local test spool server on port 3999.
-    from flask import Flask, request, make_response
-    import json
-    import optparse
-
-    app = Flask('spool')
-    app.debug = True
-
-    parser = optparse.OptionParser()
-    parser.add_option('--port', type='int', default=3999)
-    opts, args = parser.parse_args()
-
-    @app.route('/scan')
-    def handle_scan():
-        spool = Spool(request.args['user'])
-        start_pos = int(request.args['start_pos'])
-        out = [{'pos': pos, 'entry': b64encode_or_none(entry)}
-               for pos, entry in spool.scan(start_pos)]
-        response = make_response(json.dumps(out))
-        response.headers['Content-Type'] = 'application/json'
-        return response
-
-    @app.route('/command', methods=('POST',))
-    def handle_command():
-        spool = Spool(request.form['user'])
-        cmd_data = bytes(request.form['encrypted_command']).decode('base64')
-        spool.append(cmd_data)
-        return 'ok'
-
-    app.run('127.0.0.1', opts.port)

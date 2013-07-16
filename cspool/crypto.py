@@ -44,16 +44,3 @@ def generate_keys():
     return bytes(key), bytes(key.public_key)
 
 
-if __name__ == '__main__':
-    # Generate a secret/public keypair.
-    import sys
-    if len(sys.argv) != 3:
-        print >>sys.stderr, "Usage: crypto.py <secret-key-file> <public-key-file>"
-        sys.exit(1)
-    secret_key_path, public_key_path = sys.argv[1:]
-    secret, public = generate_keys()
-    with open(secret_key_path, 'w') as fd:
-        fd.write(secret)
-    with open(public_key_path, 'w') as fd:
-        fd.write(public)
-
