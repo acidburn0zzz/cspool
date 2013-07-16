@@ -1,22 +1,23 @@
-from twisted.mail import imap4
-from twisted.internet import reactor, defer, protocol
-from twisted.cred import portal
-from zope.interface import implements
-
 import email
 import getpass
 import logging
 import time
 import optparse
 
+from twisted.mail import imap4
+from twisted.internet import reactor, defer, protocol
+from twisted.cred import portal
+from zope.interface import implements
+
 from cspool.crypto import Box
 from cspool.client.db import Database
-from cspool.client.imap_interface import CredentialsChecker, UserAccount
+from cspool.client.imap_interface import SingleUserCredentialsChecker, UserAccount
 from cspool.client.server_stub import ServerStub
 from cspool.client.sync import Syncer
 
 
 class MailUserRealm(object):
+    """Connect the IMAP server with our UserAccount objects."""
     
     implements(portal.IRealm)
 
@@ -39,7 +40,6 @@ class MailUserRealm(object):
                 logout = lambda: None
                 return defer.succeed((requestedInterface, avatar, logout))
 
-        # none of the requested interfaces was supported
         raise KeyError('None of the requested interfaces is supported')
 
 
@@ -81,14 +81,17 @@ def box_from_opts(opts):
 
 def main():
     parser = optparse.OptionParser()
+    parser.add_option('--port', default=1143, type='int',
+                      help='TCP port where the IMAP server should listen on')
     parser.add_option('--user', default=getpass.getuser(),
-                      help='Username for authentication.')
+                      help='Username for authentication')
+    parser.add_option('--password', help='Password for the local IMAP account')
     parser.add_option('--db', default='test.db',
-                      help='Path to the SQLite database file.')
+                      help='Path to the SQLite database file')
     parser.add_option('--spool-server',
                       dest='spool_server_url',
                       default='http://localhost:3999',
-                      help='URL of the spool server.')
+                      help='URL of the spool server')
     parser.add_option('--user-key', dest='user_key',
                       help='Secret key to use for decryption')
     parser.add_option('--spool-key', dest='spool_key',
@@ -108,12 +111,12 @@ def main():
     sync.start()
 
     p = portal.Portal(MailUserRealm(db, box, server))
-    p.registerChecker(CredentialsChecker())
+    p.registerChecker(SingleUserCredentialsChecker(opts.user, opts.password))
 
     factory = IMAPFactory()
     factory.portal = p
 
-    reactor.listenTCP(1143, factory)
+    reactor.listenTCP(opts.port, factory)
     reactor.run()
 
 

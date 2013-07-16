@@ -3,8 +3,13 @@ from cspool import crypto
 
 
 class UserDb(object):
+    """User database mapper.
 
-    __metaclas__ = abc.ABCMeta
+    Currently this is only used to retrieve the public key for a user,
+    so we can encrypt incoming messages.
+    """
+
+    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def get_cryptobox(self, user):
@@ -15,7 +20,7 @@ class UserDb(object):
 class TestUserDb(UserDb):
     """A userdb implementation that serves the same key for everyone.
 
-    This is only useful for testing.
+    This is really only useful for testing.
     """
 
     def __init__(self, private_key, public_key):

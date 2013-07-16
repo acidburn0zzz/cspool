@@ -95,7 +95,6 @@ class Database(object):
             return c.fetchone()[0]
 
     def fetch_headers(self, messages=None):
-        print 'fetch_headers():', messages
         with rollback(self._conn()) as c:
             if messages:
                 # Boo! This won't really escape message IDs properly...

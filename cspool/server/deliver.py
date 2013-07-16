@@ -24,6 +24,8 @@ def main():
                       help='User public key to use for encryption')
     parser.add_option('--spool-key', dest='spool_key',
                       help='Spool secret key to use for signing')
+    parser.add_option('--spool-dir', dest='spool_root', default='./spool',
+                      help='Spool base path')
     opts, args = parser.parse_args()
     if not opts.user:
         parser.error('Must specify --user')
@@ -31,6 +33,8 @@ def main():
         parser.error('Must specify --user-key')
     if not opts.spool_key:
         parser.error('Must specify --spool-key')
+
+    Spool.SPOOL_ROOT = opts.spool_root
 
     msg = sys.stdin.read()
     with open(opts.user_key) as fd:

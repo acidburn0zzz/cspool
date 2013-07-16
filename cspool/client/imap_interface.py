@@ -1,10 +1,11 @@
-from twisted.mail import imap4
-from zope.interface import implements
-from twisted.internet import defer, protocol
-from twisted.cred import checkers, credentials
 import StringIO
 import time
 import rfc822
+
+from twisted.mail import imap4
+from twisted.internet import defer, protocol
+from twisted.cred import checkers, credentials, error as credError
+from zope.interface import implements
 
 from cspool.proto import SetFlagCommand, ExpungeCommand
 
@@ -13,20 +14,30 @@ class Error(Exception):
     pass
 
 
-class CredentialsChecker(object):
+class SingleUserCredentialsChecker(object):
+    """A CredentialsChecker that will authenticate a single user."""
+
     implements(checkers.ICredentialsChecker)
     credentialInterfaces = (credentials.IUsernamePassword,)
 
-    def __init__(self):
-        print 'Initialized credentials checker.'
-        pass
+    def __init__(self, username, password):
+        self._user = username
+        self._pass = password
 
     def requestAvatarId(self, credentials):
-        print 'Got login request for username=%s' % credentials.username
-        return defer.succeed(credentials.username)
+        if credentials.username == self._user and credentials.password == self._pass:
+            return defer.succeed(credentials.username)
+        else:
+            return defer.fail(credError.UnauthorizedLogin('Authentication failed'))
 
 
 class UserAccount(object):
+    """Account interface for our IMAP server.
+
+    It will present a single 'INBOX' folder to the user, and prevent
+    any other folder manipulation.
+    """
+
     implements(imap4.IAccount)
 
     def __init__(self, db, box, spool_stub):
@@ -66,6 +77,12 @@ class UserAccount(object):
 
 
 class Mailbox(object):
+    """Mailbox interface.
+
+    Every instance of this class maintains its own message UID map by
+    remapping the message IDs in the database to progressive integers.
+    """
+
     implements(imap4.IMailbox)
 
     def __init__(self, db, box, spool_stub):
@@ -102,8 +119,6 @@ class Mailbox(object):
         return 1
 
     def fetch(self, messages, uid):
-        print 'FETCH: MESSAGES:', messages, 'UID:', uid
-
         counter = 0
         if uid:
             try:
@@ -175,6 +190,8 @@ class Mailbox(object):
 
 
 class Message(object):
+    """Interface to a single message."""
+
     implements(imap4.IMessage)
 
     def __init__(self, info, msg, db):
@@ -195,9 +212,7 @@ class Message(object):
         return rfc822.formatdate(self._info['stamp'])
 
     def getHeaders(self, negate, *names):
-        return {'From': 'ale@incal.net',
-                'To': 'me',
-                'Subject': 'very important'}
+        return self._msg
 
     def getBodyFile(self):
         txt = self._db.get_message_body(self._info['id'])
