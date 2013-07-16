@@ -43,9 +43,10 @@ class Syncer(threading.Thread):
                     continue
                 try:
                     cmd = Command.deserialize(self._box.decrypt(entry))
+                    print 'CMD: %s %s' % (cmd.__class__.__name__, cmd.value)
                     cmd.apply(self._db)
                 except Exception, e:
-                    log.exception('error in apply(), skipping record...')
+                    log.exception('error in apply(), skipping record %d...' % pos)
         finally:
             self._write_pos(cur_pos)
 

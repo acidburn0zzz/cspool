@@ -6,6 +6,8 @@ import StringIO
 import time
 import rfc822
 
+from cspool.proto import SetFlagCommand, ExpungeCommand
+
 
 class Error(Exception):
     pass
@@ -27,17 +29,19 @@ class CredentialsChecker(object):
 class UserAccount(object):
     implements(imap4.IAccount)
 
-    def __init__(self, db):
+    def __init__(self, db, box, spool_stub):
         self._db = db
+        self._box = box
+        self._spool = spool_stub
 
     def listMailboxes(self, ref, wildcard):
-        mail_boxes = {'INBOX': Mailbox(self._db)}
+        mail_boxes = {'INBOX': Mailbox(self._db, self._box, self._spool)}
         return defer.succeed(mail_boxes.items())
 
     def select(self, path, rw=True):
         if path.upper() != 'INBOX':
             raise Error('unknown folder "%s"' % path)
-        return Mailbox(self._db)
+        return Mailbox(self._db, self._box, self._spool)
 
     def close(self):
         return True
@@ -64,8 +68,10 @@ class UserAccount(object):
 class Mailbox(object):
     implements(imap4.IMailbox)
 
-    def __init__(self, db):
+    def __init__(self, db, box, spool_stub):
         self._db = db
+        self._box = box
+        self._spool = spool_stub
         self._uid_map = {}
         self.listeners = []
 
@@ -146,13 +152,23 @@ class Mailbox(object):
             msgid = self._uid_map[id]
             if '\\Seen' in flags:
                 seen = (mode == -1) and 0 or 1
-                self._db.set_flag_on_message(msgid, 'seen', seen)
+                self._send_flag_command(msgid, 'seen', seen)
+                #self._db.set_flag_on_message(msgid, 'seen', seen)
             if '\\Deleted' in flags:
                 deleted = (mode == -1) and 0 or 1
-                self._db.set_flag_on_message(msgid, 'deleted', deleted)
+                self._send_flag_command(msgid, 'deleted', deleted)
+                #self._db.set_flag_on_message(msgid, 'deleted', deleted)
+
+    def _send_flag_command(self, msgid, flag, value):
+        self._spool.send_command(
+            self._box.encrypt(SetFlagCommand((msgid, flag, value)
+                                             ).serialize()))
 
     def expunge(self):
-        self._db.expunge()
+        #self._db.expunge()
+        self._spool.send_command(
+            self._box.encrypt(ExpungeCommand(None).serialize()))
+        return self._db.to_expunge()
 
     def destroy(self):
         raise imap4.MailboxException('Not implemented')

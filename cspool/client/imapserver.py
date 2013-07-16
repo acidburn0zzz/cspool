@@ -24,15 +24,17 @@ class MailUserRealm(object):
         imap4.IAccount: UserAccount,
         }
 
-    def __init__(self, db):
+    def __init__(self, db, box, spool_stub):
         self._db = db
+        self._box = box
+        self._spool = spool_stub
 
     def requestAvatar(self, avatarId, mind, *interfaces):
         for requestedInterface in interfaces:
             if self.avatarInterfaces.has_key(requestedInterface):
                 # return an instance of the correct class
                 avatarClass = self.avatarInterfaces[requestedInterface]
-                avatar = avatarClass(self._db)
+                avatar = avatarClass(self._db, self._box, self._spool)
                 # null logout function: take no arguments and do nothing
                 logout = lambda: None
                 return defer.succeed((requestedInterface, avatar, logout))
@@ -105,7 +107,7 @@ def main():
     sync.setDaemon(True)
     sync.start()
 
-    p = portal.Portal(MailUserRealm(db))
+    p = portal.Portal(MailUserRealm(db, box, server))
     p.registerChecker(CredentialsChecker())
 
     factory = IMAPFactory()

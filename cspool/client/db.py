@@ -76,6 +76,11 @@ class Database(object):
         with commit(self._conn()) as c:
             c.execute('delete from messages where deleted = 1')
 
+    def to_expunge(self):
+        with rollback(self._conn()) as c:
+            c.execute('select id from messages where deleted = 1')
+            return [x[0] for x in c.fetchall()]
+
     def count_messages(self, unread=False):
         with rollback(self._conn()) as c:
             sql = 'select count(*) from messages'
