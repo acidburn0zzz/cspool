@@ -39,6 +39,11 @@ class Box(object):
         return self._box.decrypt(ciphertext)
 
 
+def generate_keys():
+    key = public.PrivateKey.generate()
+    return bytes(key), bytes(key.public_key)
+
+
 if __name__ == '__main__':
     # Generate a secret/public keypair.
     import sys
@@ -46,9 +51,9 @@ if __name__ == '__main__':
         print >>sys.stderr, "Usage: crypto.py <secret-key-file> <public-key-file>"
         sys.exit(1)
     secret_key_path, public_key_path = sys.argv[1:]
-    key = public.PrivateKey.generate()
+    secret, public = generate_keys()
     with open(secret_key_path, 'w') as fd:
-        fd.write(bytes(key))
+        fd.write(secret)
     with open(public_key_path, 'w') as fd:
-        fd.write(bytes(key.public_key))
+        fd.write(public)
 
