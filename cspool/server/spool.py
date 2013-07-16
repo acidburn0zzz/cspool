@@ -1,7 +1,6 @@
 # Server-side implementation of the spool.
 # File-based, just because it is easy.
 
-import base64
 import os
 import fcntl
 import contextlib
@@ -75,7 +74,7 @@ class Spool(object):
 def b64encode_or_none(s):
     if s is None:
         return s
-    return base64.b64encode(s)
+    return s.encode('base64')
 
 
 if __name__ == '__main__':
@@ -104,7 +103,7 @@ if __name__ == '__main__':
     @app.route('/command', methods=('POST',))
     def handle_command():
         spool = Spool(request.form['user'])
-        cmd_data = base64.b64decode(request.form['encrypted_command'])
+        cmd_data = bytes(request.form['encrypted_command']).decode('base64')
         spool.append(cmd_data)
         return 'ok'
 

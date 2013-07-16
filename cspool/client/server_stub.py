@@ -1,4 +1,3 @@
-import base64
 import json
 import urllib
 import urllib2
@@ -11,7 +10,7 @@ class Error(Exception):
 def b64decode_or_none(s):
     if s is None:
         return s
-    return base64.b64decode(s)
+    return bytes(s).decode('base64')
 
 
 class ServerStub(object):
@@ -29,7 +28,7 @@ class ServerStub(object):
 
     def send_command(self, encrypted_command):
         data = {'user': self._user,
-                'encrypted_command': base64.b64encode(encrypted_command)}
+                'encrypted_command': encrypted_command.encode('base64')}
         req = urllib2.Request(self._url + '/command',
                               data=urllib.urlencode(data))
         resp = urllib2.urlopen(req)
