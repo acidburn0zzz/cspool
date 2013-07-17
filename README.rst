@@ -84,3 +84,11 @@ Todo
 * Implement checkpoints so that the log doesn't grow forever.
 
 * Batch updates to reduce query load on the server.
+
+
+
+Author
+------
+
+ale@incal.net
+
