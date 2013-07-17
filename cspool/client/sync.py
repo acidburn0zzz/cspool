@@ -7,16 +7,26 @@ from cspool.proto import Command
 log = logging.getLogger(__name__)
 
 
+def decrypt_any(boxes, data):
+    """Attempt decryption of 'data' with any of the given Boxes."""
+    for b in boxes:
+        try:
+            return b.decrypt(data)
+        except Exception, e:
+            err = e
+    raise err
+
+
 class Syncer(threading.Thread):
     """Synchronize the local database and the remote spool."""
 
     PERIOD = 300
 
-    def __init__(self, db, server, box):
+    def __init__(self, db, server, boxes):
         threading.Thread.__init__(self)
         self._db = db
         self._server = server
-        self._box = box
+        self._boxes = boxes
         self._stop_event = threading.Event()
 
     def stop(self):
@@ -42,7 +52,7 @@ class Syncer(threading.Thread):
                 if not entry:
                     continue
                 try:
-                    cmd = Command.deserialize(self._box.decrypt(entry))
+                    cmd = Command.deserialize(decrypt_any(self._boxes, entry))
                     print 'CMD: %s %s' % (cmd.__class__.__name__, cmd.value)
                     cmd.apply(self._db)
                 except Exception, e:

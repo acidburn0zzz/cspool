@@ -52,7 +52,8 @@ exercise). To run it:
 
 * Start the IMAP server::
 
-    $ cspool-imap-server --user-key=user.sec --spool-key=spool.pub &
+    $ cspool-imap-server --user-key=user.sec --spool-key=spool.pub \
+        --user-public-key=user.pub &
 
 * Deliver some messages to your spool, assuming you have an email
   message in a file named ``message``::

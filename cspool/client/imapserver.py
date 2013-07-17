@@ -71,14 +71,6 @@ class IMAPFactory(protocol.Factory):
         return p
 
 
-def box_from_opts(opts):
-    with open(opts.user_key) as fd:
-        secret_key = fd.read()
-    with open(opts.spool_key) as fd:
-        public_key = fd.read()
-    return Box(opts.user, secret_key, public_key)
-
-
 def main():
     parser = optparse.OptionParser()
     parser.add_option('--port', default=1143, type='int',
@@ -94,23 +86,35 @@ def main():
                       help='URL of the spool server')
     parser.add_option('--user-key', dest='user_key',
                       help='Secret key to use for decryption')
+    parser.add_option('--user-public-key', dest='user_public_key',
+                      help='User public key to use for sending commands to the spool')
     parser.add_option('--spool-key', dest='spool_key',
                       help='Public key of the spool, to use for verification')
     opts, args = parser.parse_args()
 
-    if not opts.user_key or not opts.spool_key:
-        parser.error('Must specify both --user-key and --spool-key')
+    if not opts.user_key or not opts.spool_key or not opts.user_public_key
+        parser.error('Must specify all of --user-key, --user-public-key and --spool-key')
 
     logging.basicConfig()
 
+    # Create two crypto boxes: one to read messages from the spool, another
+    # to self-encrypt commands that are sent there.
+    with open(opts.user_key) as fd:
+        user_secret_key = fd.read()
+    with open(opts.user_public_key) as fd:
+        user_public_key = fd.read()
+    with open(opts.spool_key) as fd:
+        spool_public_key = fd.read()
+    box = Box(opts.user, user_secret_key, spool_public_key)
+    selfbox = Box(opts.user, user_secret_key, user_public_key)
+
     db = Database(opts.db)
     server = ServerStub(opts.spool_server_url, opts.user)
-    box = box_from_opts(opts)
-    sync = Syncer(db, server, box)
+    sync = Syncer(db, server, [box, selfbox])
     sync.setDaemon(True)
     sync.start()
 
-    p = portal.Portal(MailUserRealm(db, box, server))
+    p = portal.Portal(MailUserRealm(db, selfbox, server))
     p.registerChecker(SingleUserCredentialsChecker(opts.user, opts.password))
 
     factory = IMAPFactory()

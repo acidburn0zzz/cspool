@@ -14,6 +14,7 @@ class TestDeliver(unittest.TestCase):
 
         self.userdb = TestUserDb(self.spool_sec, self.user_pub)
         self.user_box = Box('user', self.user_sec, self.spool_pub)
+        self.self_box = Box('user', self.user_sec, self.user_pub)
 
     def test_delivery_encrypt_ok(self):
         # Test that the user can read what 'deliver.py' appends to the spool.
@@ -24,3 +25,12 @@ class TestDeliver(unittest.TestCase):
         
         self.assertEquals(msg, dec.value[0])
 
+    def test_self_encrypt_ok(self):
+        # Test that messages that we insert on the spool are readable.
+        msg = 'hello there'
+        cmd = PutCommand(msg)
+        enc = self.self_box.encrypt(cmd.serialize())
+        dec = Command.deserialize(
+            self.self_box.decrypt(enc))
+
+        self.assertEquals(msg, dec.value)
